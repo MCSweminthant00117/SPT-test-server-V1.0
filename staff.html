@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S.P.T InterService | Staff</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    <style>
+        * { font-style: normal !important; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f1f5f9; overflow-x: hidden; }
+        .premium-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .my-profile-card { background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.4); box-shadow: 0 0 30px rgba(34, 197, 94, 0.1); }
+        #detail-view { position: fixed; right: 0; top: 0; height: 100%; width: 100%; max-width: 450px; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(25px); z-index: 100; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); border-left: 1px solid rgba(255,255,255,0.1); }
+        #detail-view.open { transform: translateX(0); }
+        .week-active { background: rgba(34, 197, 94, 0.12) !important; border: 1px solid rgba(34, 197, 94, 0.3) !important; }
+        .week-past { background: rgba(239, 68, 68, 0.08) !important; border: 1px solid rgba(239, 68, 68, 0.2) !important; }
+        .glass-back { background: rgba(255, 255, 255, 0.05) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1) !important; }
+    </style>
+</head>
+<body class="min-h-screen pb-10">
+
+    <div id="beta-modal" class="fixed inset-0 z-[9999] flex items-center justify-center px-6 hidden transition-opacity duration-300">
+        <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-md"></div>
+        <div class="relative bg-white/10 backdrop-blur-2xl border border-white/20 p-8 rounded-[2.5rem] max-w-sm w-full text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div class="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-500/20 rotate-6">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <h3 class="text-2xl font-black text-white mb-3 tracking-tighter uppercase">Beta Warning</h3>
+            <div class="space-y-4 mb-8">
+                <p class="text-sm text-slate-200 leading-relaxed font-medium">ယခု Portal သည် <span class="text-amber-400 font-bold">စမ်းသပ်အဆင့် (Beta Phase)</span> သာ ရှိပါသေးသည်။</p>
+                <p class="text-[11px] text-slate-400 leading-relaxed text-center">အချက်အလက် တည်ငြိမ်မှု မရှိနိုင်သေးပါ။ Stable Version ကို မကြာမီ ထုတ်လွှင့်ပေးပါမည်။</p>
+            </div>
+            <button onclick="closeBeta()" class="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl">နားလည်ပါပြီ (Agree)</button>
+        </div>
+    </div>
+
+    <nav class="sticky top-0 z-50 px-6 py-4 bg-[#0f172a]/80 backdrop-blur-lg border-b border-white/5 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <button onclick="logout()" class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500/20 transition-all active:scale-95 group">
+                <svg class="w-5 h-5 text-slate-300 group-hover:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+            </button>
+            <div class="flex flex-col">
+                <span class="font-black tracking-tighter text-lg uppercase leading-none text-white">S.P.T InterService</span>
+                <span class="text-[9px] font-bold text-green-500 uppercase tracking-[0.2em] mt-1">Staff Portal</span>
+            </div>
+        </div>
+        <div class="w-10 h-10 bg-gradient-to-tr from-rose-600 to-pink-900 rounded-xl flex items-center justify-center shadow-lg font-black text-white italic">S</div>
+    </nav>
+
+    <main class="max-w-xl mx-auto p-6 space-y-8">
+        <section>
+            <p class="text-[10px] font-black text-green-500 uppercase tracking-[0.3em] mb-4 ml-2">Personal Identity</p>
+            <div id="my-card-container">
+                <div class="premium-card p-10 flex flex-col items-center justify-center text-slate-500 gap-3">
+                    <div class="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest">Identifying User...</p>
+                </div>
+            </div>
+        </section>
+        <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+        <section>
+            <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 ml-2">Team Directory</p>
+            <div id="staff-list" class="grid gap-3"></div>
+        </section>
+    </main>
+
+    <div id="detail-view">
+        <div class="p-8 h-full flex flex-col">
+            <button onclick="toggleD(false)" class="w-10 h-10 rounded-xl glass-back flex items-center justify-center mb-6 hover:bg-white/10 transition-all">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="mb-8">
+                <h2 id="det-name" class="text-3xl font-black text-white tracking-tighter leading-none mb-1">...</h2>
+                <p id="det-id-label" class="text-[10px] text-green-500 font-bold uppercase tracking-widest">ID-0000</p>
+            </div>
+            <div id="det-stats" class="space-y-4 mb-8"></div>
+            <div class="flex-1 overflow-y-auto pr-2" id="det-logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const storedUser = JSON.parse(localStorage.getItem("spt_user"));
+        if(!storedUser) window.location.href = "index.html";
+        const myIdStr = String(storedUser.workerCode).trim();
+
+        const avatarColors = [
+            'bg-blue-600 shadow-blue-500/20', 'bg-purple-600 shadow-purple-500/20', 
+            'bg-emerald-600 shadow-emerald-500/20', 'bg-rose-600 shadow-rose-500/20', 
+            'bg-amber-600 shadow-amber-500/20', 'bg-indigo-600 shadow-indigo-500/20', 
+            'bg-cyan-600 shadow-cyan-500/20', 'bg-pink-600 shadow-pink-500/20'
+        ];
+
+        function toggleD(s) { document.getElementById('detail-view').classList.toggle('open', s); }
+        
+        function closeBeta() {
+            const modal = document.getElementById('beta-modal');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                sessionStorage.setItem('beta_warned', 'true');
+            }, 300);
+        }
+
+        function init() {
+            if (!sessionStorage.getItem('beta_warned')) {
+                document.getElementById('beta-modal').classList.remove('hidden');
+            }
+
+            db.collection("workers").orderBy("workerCode", "asc").onSnapshot(snap => {
+                const list = document.getElementById('staff-list');
+                const myContainer = document.getElementById('my-card-container');
+                list.innerHTML = "";
+                let foundMe = false;
+                snap.forEach(doc => {
+                    const w = doc.data();
+                    const wIdStr = String(w.workerCode).trim();
+                    const colorClass = avatarColors[Number(wIdStr) % avatarColors.length];
+
+                    if(wIdStr === myIdStr) {
+                        foundMe = true;
+                        renderMyCard(w, myContainer, colorClass);
+                    } else {
+                        list.innerHTML += `
+                        <div onclick="showD('${w.workerCode}','${w.name}')" class="premium-card p-4 flex items-center justify-between hover:bg-white/5 cursor-pointer border-none mb-1 transition-all active:scale-95">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 ${colorClass} rounded-xl flex items-center justify-center font-black text-xs text-white uppercase shadow-lg">${w.name[0]}</div>
+                                <div><p class="text-sm font-bold text-white leading-none mb-1">${w.name}</p><p class="text-[9px] text-slate-500 font-bold tracking-wider uppercase">ID-${w.workerCode}</p></div>
+                            </div>
+                            <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                        </div>`;
+                    }
+                });
+                if(!foundMe) myContainer.innerHTML = `<div class="premium-card p-8 text-center text-red-400 font-bold uppercase text-[10px]">Profile (ID: ${myIdStr}) Not Found.</div>`;
+            });
+        }
+
+        async function renderMyCard(w, container, colorClass) {
+            container.innerHTML = `<div onclick="showD('${w.workerCode}','${w.name}')" class="premium-card my-profile-card p-6 cursor-pointer active:scale-[0.98] transition-all"><div class="flex justify-between items-center mb-6"><div><h2 class="text-2xl font-black text-white tracking-tight leading-tight">${w.name}</h2><p class="text-[10px] font-bold text-green-500 uppercase tracking-widest mt-1">Personal Account (ID-${w.workerCode})</p></div><div class="w-12 h-12 ${colorClass} rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg">${w.name[0]}</div></div><div id="my-salary-summary" class="grid grid-cols-2 gap-3"><div class="p-4 rounded-2xl bg-white/5 animate-pulse h-16"></div><div class="p-4 rounded-2xl bg-white/5 animate-pulse h-16"></div></div></div>`;
+            db.collection("shifts").where("workerId", "==", Number(w.workerCode)).onSnapshot(snap => {
+                let w1 = 0, w2 = 0;
+                snap.forEach(doc => {
+                    const s = doc.data();
+                    const day = parseInt(s.date.split('-')[2]);
+                    const [st, en] = s.time.split('-');
+                    let sH = parseInt(st.split(':')[0]), eH = parseInt(en.split(':')[0]);
+                    let dur = (eH - sH) < 0 ? (eH + 24 - sH) : (eH - sH);
+                    let amt = dur >= 8 ? 380 : (dur * 60);
+                    if(day <= 15) w1 += amt; else w2 += amt;
+                });
+                const isW1 = (new Date()).getDate() <= 15;
+                const sumDiv = document.getElementById('my-salary-summary');
+                if(sumDiv) sumDiv.innerHTML = `<div class="p-4 rounded-2xl ${isW1 ? 'week-active' : 'week-past'}"><p class="text-[8px] font-black uppercase tracking-widest ${isW1 ? 'text-green-400' : 'text-red-400/60'} mb-1 text-center">Week 1</p><p class="text-xl font-black text-white text-center">${Math.round(w1)} ฿</p></div><div class="p-4 rounded-2xl ${!isW1 ? 'week-active' : 'week-past'}"><p class="text-[8px] font-black uppercase tracking-widest ${!isW1 ? 'text-green-400' : 'text-red-400/60'} mb-1 text-center">Week 2</p><p class="text-xl font-black text-white text-center">${Math.round(w2)} ฿</p></div>`;
+            });
+        }
+
+        async function showD(id, name) {
+            toggleD(true);
+            document.getElementById('det-name').innerText = name;
+            document.getElementById('det-id-label').innerText = "ID-" + id;
+            db.collection("shifts").where("workerId", "==", Number(id)).onSnapshot(snap => {
+                let w1FT = 0, w1PT = 0, w1T = 0, w2FT = 0, w2PT = 0, w2T = 0, logs = [];
+                snap.forEach(doc => {
+                    const s = doc.data();
+                    const day = parseInt(s.date.split('-')[2]);
+                    const [st, en] = s.time.split('-');
+                    let sH = parseInt(st.split(':')[0]), eH = parseInt(en.split(':')[0]);
+                    let dur = (eH - sH) < 0 ? (eH + 24 - sH) : (eH - sH);
+                    if (day <= 15) { if(dur>=8){w1FT++; w1T+=380;} else {w1PT+=dur; w1T+=(dur*60);} }
+                    else { if(dur>=8){w2FT++; w2T+=380;} else {w2PT+=dur; w2T+=(dur*60);} }
+                    logs.push({...s, id: doc.id});
+                });
+                const isW1 = (new Date()).getDate() <= 15;
+                document.getElementById('det-stats').innerHTML = `
+                <div class="premium-card p-5 ${isW1 ? 'week-active' : 'week-past'}">
+                    <p class="text-[9px] font-black uppercase tracking-widest ${isW1 ? 'text-green-500' : 'text-red-400/60'} mb-3">First Week (1-15)</p>
+                    <div class="text-[11px] font-bold text-slate-300 uppercase space-y-2">
+                        <div class="flex justify-between"><span>FT: ${w1FT} Days × 380</span><span>${w1FT*380} ฿</span></div>
+                        <div class="flex justify-between"><span>PT: ${w1PT} Hours × 60</span><span>${w1PT*60} ฿</span></div>
+                    </div>
+                    <div class="border-t border-white/10 mt-3 pt-3 flex justify-between items-end"><span class="text-[10px] font-black text-slate-500 uppercase">Total</span><span class="text-2xl font-black text-white leading-none">${Math.round(w1T)} ฿</span></div>
+                </div>
+                <div class="premium-card p-5 ${!isW1 ? 'week-active' : 'week-past'}">
+                    <p class="text-[9px] font-black uppercase tracking-widest ${!isW1 ? 'text-green-500' : 'text-red-400/60'} mb-3">Second Week (16-End)</p>
+                    <div class="text-[11px] font-bold text-slate-300 uppercase space-y-2">
+                        <div class="flex justify-between"><span>FT: ${w2FT} Days × 380</span><span>${w2FT*380} ฿</span></div>
+                        <div class="flex justify-between"><span>PT: ${w2PT} Hours × 60</span><span>${w2PT*60} ฿</span></div>
+                    </div>
+                    <div class="border-t border-white/10 mt-3 pt-3 flex justify-between items-end"><span class="text-[10px] font-black text-slate-500 uppercase">Total</span><span class="text-2xl font-black text-white leading-none">${Math.round(w2T)} ฿</span></div>
+                </div>`;
+                
+                document.getElementById('det-logs').innerHTML = `<p class="text-[10px] font-black text-slate-500 uppercase mb-3 mt-4 ml-1">Records History</p>` + 
+                logs.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l => {
+                    const [st, en] = l.time.split('-');
+                    let sH = parseInt(st.split(':')[0]), eH = parseInt(en.split(':')[0]);
+                    let dur = (eH - sH) < 0 ? (eH + 24 - sH) : (eH - sH);
+                    const isFT = dur >= 8;
+                    const colorClass = isFT ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30';
+                    return `<div class="premium-card p-4 flex justify-between items-center bg-white/5 border-none mb-2">
+                        <div><p class="text-[11px] font-bold text-slate-200">${l.date}</p><p class="text-[9px] font-bold text-slate-500 uppercase">${l.time}</p></div>
+                        <div class="px-3 py-1 rounded-full border ${colorClass} text-[9px] font-black uppercase tracking-widest">${isFT ? 'Full-Time' : 'Part-Time'}</div>
+                    </div>`;
+                }).join('');
+            });
+        }
+
+        function logout() { localStorage.clear(); window.location.href = "index.html"; }
+        init();
+    </script>
+</body>
+</html>
