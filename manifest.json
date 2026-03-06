@@ -1,0 +1,24 @@
+{
+  "short_name": "SPT-Portal",
+  "name": "S.P.T InterService Portal",
+  "icons": [
+    {
+      "src": "https://ui-avatars.com/api/?name=S&background=db2777&color=fff&size=512&bold=true&format=png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://ui-avatars.com/api/?name=S&background=db2777&color=fff&size=512&bold=true&format=png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#0f172a",
+  "orientation": "portrait"
+}
