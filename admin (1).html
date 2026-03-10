@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+///dailysummaryအဆင်ပြေသောhtml
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S.P.T Master Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="firebase-config.js"></script>
+    <style>
+        * { font-style: normal !important; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f1f5f9; }
+        .premium-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 20px; }
+        .modern-input { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 12px; }
+        .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; height: 65px; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 25px; display: flex; align-items: center; justify-content: space-around; z-index: 1000; box-shadow: 0 15px 35px rgba(0,0,0,0.4); }
+        .nav-item { color: #64748b; font-size: 9px; font-weight: 800; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.3s; }
+        .nav-item.active { color: #be185d; }
+        .nav-dot { width: 4px; height: 4px; background: #be185d; border-radius: 50%; opacity: 0; }
+        .nav-item.active .nav-dot { opacity: 1; }
+        .section-view { display: none; animation: fadeIn 0.4s ease-out; }
+        .section-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .glass-dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .glass-dialog { background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 28px; width: 100%; max-width: 400px; padding: 30px; }
+        #detail-panel { position: fixed; right: 0; top: 0; height: 100%; width: 100%; max-width: 450px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); z-index: 2000; transform: translateX(100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); border-left: 1px solid rgba(255,255,255,0.1); }
+        #detail-panel.open { transform: translateX(0); }
+        .current-week-card { border: 2px solid #be185d !important; background: rgba(190, 24, 93, 0.1) !important; }
+    </style>
+</head>
+    <body class="min-h-screen pb-32">
+        <div id="custom-dialog" class="glass-dialog-overlay">
+            <div class="glass-dialog">
+                <h3 id="dialog-title" class="text-xl font-black uppercase text-white mb-2">Confirm</h3>
+                <div id="dialog-body" class="text-slate-300 text-sm mb-8 leading-relaxed"></div>
+                <div class="flex gap-3" id="dialog-actions"></div>
+            </div>
+        </div>
+
+        <nav class="sticky top-0 z-50 bg-[#020617]/90 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3"><div class="w-10 h-10 bg-pink-700 rounded-xl flex items-center justify-center font-black text-white shadow-lg">S</div><span class="font-extrabold tracking-tighter text-xl uppercase text-white">SPT MASTER</span></div>
+            <button onclick="logout()" class="text-[10px] font-black uppercase text-slate-400">Sign Out</button>
+        </nav>
+
+        <main class="max-w-4xl mx-auto p-6">
+            <section id="section-staff" class="section-view active space-y-6">
+                <div class="flex justify-between items-center"><h2 class="text-xl font-black uppercase tracking-tighter">Personnel</h2><button onclick="openStaffModal()" class="bg-pink-700 px-5 py-2 rounded-xl font-black text-[10px] uppercase">+ Add Staff</button></div>
+                <div id="staff-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </section>
+
+            <section id="section-shift" class="section-view space-y-6">
+                <h2 class="text-xl font-black uppercase tracking-tighter text-pink-500">Shift Entry</h2>
+                <div class="premium-card p-6 grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <input type="date" id="as-date" class="w-full p-4 modern-input font-bold text-sm">
+                        <div class="grid grid-cols-1 gap-2">
+                             <button onclick="setQuickTime('17:00-22:00', this)" class="q-btn p-3 rounded-xl border border-white/10 bg-white/5 text-[10px] font-bold text-slate-400 text-left">17:00 - 22:00 (PT)</button>
+                             <button onclick="setQuickTime('22:00-02:00', this)" class="q-btn p-3 rounded-xl border border-white/10 bg-white/5 text-[10px] font-bold text-slate-400 text-left">22:00 - 02:00 (PT)</button>
+                             <button onclick="setQuickTime('22:00-07:00', this)" class="q-btn p-3 rounded-xl border border-white/10 bg-white/5 text-[10px] font-bold text-slate-400 text-left">22:00 - 07:00 (FT)</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2"><select id="start-hour" class="modern-input p-4 font-bold text-xs"><option value="">Start</option></select><select id="end-hour" class="modern-input p-4 font-bold text-xs"><option value="">End</option></select></div>
+                    </div>
+                    <div class="flex flex-col"><div id="staff-checkbox-list" class="space-y-1"></div><button onclick="preConfirmShift()" class="w-full mt-6 py-4 bg-pink-700 rounded-xl font-black text-xs uppercase shadow-xl">Post Assignment</button></div>
+                </div>
+            </section>
+
+            <section id="section-summary" class="section-view space-y-6">
+                <div class="flex justify-between items-center"><h2 class="text-xl font-black uppercase tracking-tighter text-blue-400">Daily Recap</h2><button id="multi-del-btn" onclick="executeMultiDelete()" class="hidden bg-red-600 px-4 py-2 rounded-lg font-black text-[9px] uppercase">Delete Selected</button></div>
+                <div class="premium-card p-6"><input type="date" id="summary-date" onchange="loadDailySummary()" class="w-full p-4 modern-input font-bold text-sm mb-6"><div id="summary-content"></div></div>
+            </section>
+
+            <section id="section-server" class="section-view space-y-6">
+                <div class="flex justify-between items-end"><h2 class="text-xl font-black uppercase tracking-tighter text-yellow-500">Server Control</h2><div id="server-badge" class="px-3 py-1 rounded-full text-[8px] font-black uppercase border">Checking...</div></div>
+
+                <div class="premium-card p-6 space-y-4">
+                    <input type="text" id="maintHeader" class="w-full p-4 modern-input font-bold text-sm" placeholder="Title">
+                    <textarea id="maintMessage" class="w-full p-4 modern-input font-bold text-sm h-20" placeholder="Message"></textarea>
+                    <div class="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5"><span class="text-xs font-black uppercase text-slate-400">Lock Access</span><input type="checkbox" id="maintStatus" class="w-6 h-6 accent-yellow-600"></div>
+                    <button onclick="updateServerStatus()" class="w-full py-4 bg-yellow-600 rounded-xl font-black text-xs uppercase">Update System</button>
+                </div>
+
+                <div class="space-y-3">
+                    <p class="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Need Engineer Access</p>
+                    <button onclick="verifyEngineer('backup')" class="w-full premium-card py-4 font-black text-[10px] uppercase text-slate-300 border-none">Backup Data (JSON)</button>
+                    <label class="block w-full premium-card py-4 font-black text-[10px] uppercase text-blue-400 text-center cursor-pointer">Restore Data<input type="file" id="restore-file" class="hidden" accept=".json" onchange="verifyEngineer('restore', this)"></label>
+                    <button onclick="verifyEngineer('delete')" class="w-full premium-card py-4 font-black text-[10px] uppercase text-red-500 border-none">Delete Data</button>
+                </div>
+            </section>
+        </main>
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="switchTab('staff', this)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>Staff</span><div class="nav-dot"></div></div>
+            <div class="nav-item" onclick="switchTab('shift', this)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M12 4v16m8-8H4"/></svg><span>Shift</span><div class="nav-dot"></div></div>
+            <div class="nav-item" onclick="switchTab('summary', this)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg><span>Logs</span><div class="nav-dot"></div></div>
+            <div class="nav-item" onclick="switchTab('server', this)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg><span>Server</span><div class="nav-dot"></div></div>
+        </div>
+
+        <div id="detail-panel">
+            <div class="p-8 h-full flex flex-col overflow-y-auto">
+                <div class="flex justify-between items-center mb-10"><button onclick="closeDetails()" class="text-slate-400 text-[10px] font-black uppercase">← Back</button><button id="del-profile-btn" class="text-red-500 text-[10px] font-black uppercase">Delete Profile</button></div>
+                <div id="detail-header" class="mb-10 text-white"></div>
+                <div id="detail-stats" class="grid grid-cols-2 gap-3 mb-8"></div>
+                <h4 class="text-[10px] font-black uppercase text-slate-500 mb-4 tracking-widest">Shift History</h4>
+                <div id="detail-history" class="space-y-2 pb-10"></div>
+            </div>
+        </div>
+        <script>
+            let selectedTime = "", workersList = [];
+            function switchTab(t, el) { document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById('section-' + t).classList.add('active'); el.classList.add('active'); }
+            function setQuickTime(t, b) { selectedTime = t; document.querySelectorAll('.q-btn').forEach(x => x.classList.remove('border-pink-500','bg-pink-500/10','text-white')); b.classList.add('border-pink-500','bg-pink-500/10','text-white'); }
+
+            function showGlassDialog(title, body, actions) {
+                document.getElementById('dialog-title').innerText = title; document.getElementById('dialog-body').innerHTML = body;
+                const container = document.getElementById('dialog-actions'); container.innerHTML = "";
+                actions.forEach(a => { const btn = document.createElement('button'); btn.className = `flex-1 py-4 rounded-xl font-black text-[10px] uppercase ${a.primary ? 'bg-pink-700 text-white shadow-lg' : 'bg-white/5 text-slate-400'}`; btn.innerText = a.text; btn.onclick = () => { document.getElementById('custom-dialog').style.display='none'; if(a.fn) a.fn(); }; container.appendChild(btn); });
+                document.getElementById('custom-dialog').style.display = 'flex';
+            }
+
+            function init() {
+                populateHours();
+                db.collection("workers").orderBy("workerCode", "asc").onSnapshot(snap => {
+                    const grid = document.getElementById('staff-grid'), cl = document.getElementById('staff-checkbox-list');
+                    grid.innerHTML = ""; cl.innerHTML = ""; workersList = [];
+                    snap.forEach(doc => {
+                        const w = { id: doc.id, ...doc.data() }; workersList.push(w);
+                        grid.innerHTML += `<div onclick="openDetails('${w.id}', '${w.name}', ${w.workerCode})" class="premium-card p-4 flex items-center justify-between cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center font-black text-pink-500">${w.name[0]}</div><div><p class="text-sm font-bold uppercase text-white">${w.name}</p><p class="text-[9px] text-slate-500">ID: ${w.workerCode}</p></div></div><button onclick="event.stopPropagation(); openStaffEdit('${w.id}', '${w.name}', ${w.workerCode})" class="p-2 text-pink-500">✎</button></div>`;
+                        cl.innerHTML += `<label class="flex items-center gap-3 p-3 hover:bg-white/5 cursor-pointer border-b border-white/5"><input type="checkbox" class="shift-cb w-4 h-4 accent-pink-600" data-name="${w.name}" value="${w.workerCode}"><span class="text-[11px] font-bold uppercase text-slate-300">${w.workerCode} - ${w.name}</span></label>`;
+                    });
+                });
+                db.collection("settings").doc("staffControl").onSnapshot(doc => {
+                    if(doc.exists) { const d = doc.data(); document.getElementById('maintStatus').checked = d.isLocked; document.getElementById('maintHeader').value = d.header; document.getElementById('maintMessage').value = d.message; const b = document.getElementById('server-badge'); b.innerText = d.isLocked ? "Offline" : "Online"; b.className = d.isLocked ? "px-3 py-1 rounded-full text-[8px] font-black border border-red-500/30 text-red-500 bg-red-500/10" : "px-3 py-1 rounded-full text-[8px] font-black border border-green-500/30 text-green-500 bg-green-500/10"; }
+                });
+            }
+
+            function openStaffEdit(id, name, code) { showGlassDialog("Edit Staff", `<input type="text" id="edit-n" value="${name}" class="w-full modern-input p-4 mb-4 text-white"><input type="number" id="edit-c" value="${code}" class="w-full modern-input p-4 text-white">`, [{text: "Cancel"}, {text: "Update", primary: true, fn: async () => { await db.collection("workers").doc(id).update({name: document.getElementById('edit-n').value, workerCode: parseInt(document.getElementById('edit-c').value)}); }}]); }
+
+            // Improved Conflict Check Logic
+            async function preConfirmShift() {
+                const d = document.getElementById('as-date').value, fT = selectedTime || (document.getElementById('start-hour').value + "-" + document.getElementById('end-hour').value); const sel = Array.from(document.querySelectorAll('.shift-cb:checked'));
+                if(!d || fT.length < 5 || sel.length === 0) return showGlassDialog("Error", "Check Date, Time & Staff", [{text: "OK"}]);
+
+                const existing = await db.collection("shifts").where("date", "==", d).get();
+                let conflicts = [];
+                sel.forEach(cb => { 
+                    existing.forEach(doc => { 
+                        if(doc.data().workerId === parseInt(cb.value) && doc.data().time === fT) {
+                            conflicts.push(`${cb.value} - ${cb.dataset.name} (Duplicate time: ${fT})`);
+                        }
+                    }); 
+                });
+
+                if(conflicts.length > 0) return showGlassDialog("Duplicate Entry", `<span class="text-red-400 text-xs">${conflicts.join('<br>')}</span>`, [{text: "Fix"}]);
+
+                showGlassDialog("Confirm Post?", `
+                    <div class="bg-white/5 p-4 rounded-2xl mb-4"><p class="text-white font-bold">${d}</p><p class="text-pink-500 font-black">${fT} (${sel.length})*</p></div>
+                    <div class="text-[11px] text-slate-300 px-2">${sel.map(cb=>cb.value + " - " + cb.dataset.name).join('<br>')}</div>`, 
+                [{text: "No"}, {text: "Post Now", primary:true, fn:async ()=>{ const b=db.batch(); sel.forEach(cb=>b.set(db.collection("shifts").doc(),{date:d,time:fT,workerId:parseInt(cb.value)})); await b.commit(); sel.forEach(cb=>cb.checked=false); }}]);
+            }
+
+            function verifyEngineer(action, element = null) {
+                showGlassDialog("Engineer Access", `<input type="email" id="eng-e" placeholder="Engineer Email" class="w-full modern-input p-4 mb-3"><input type="password" id="eng-p" placeholder="Password" class="w-full modern-input p-4">`, [{text: "Abort"}, {text: "Login", primary:true, fn:async ()=>{
+                    try { await firebase.auth().signInWithEmailAndPassword(document.getElementById('eng-e').value, document.getElementById('eng-p').value); 
+                    if(action === 'backup') executeBackup(); else if(action === 'restore') executeRestore(element); else if(action === 'delete') executeWipe();
+                    } catch(e) { alert("Access Denied"); }
+                }}]);
+            }
+
+            async function executeBackup() { const w = await db.collection("workers").get(), s = await db.collection("shifts").get(); const blob = new Blob([JSON.stringify({workers: w.docs.map(d=>d.data()), shifts: s.docs.map(d=>d.data())})], {type: "application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `Backup_${d}.json`; a.click(); }
+            function executeRestore(input) { const reader = new FileReader(); reader.onload = async (e) => { const data = JSON.parse(e.target.result); showGlassDialog("Restore?", `Records: ${data.shifts.length}`, [{text: "No"}, {text: "Restore", primary:true, fn:async ()=>{ const b=db.batch(); data.workers.forEach(w=>b.set(db.collection("workers").doc(), w)); data.shifts.forEach(s=>b.set(db.collection("shifts").doc(), s)); await b.commit(); }}]); }; reader.readAsText(input.files[0]); }
+            function executeWipe() { showGlassDialog("Wipe DB?", "Delete ALL?", [{text: "No"}, {text: "Wipe", primary:true, fn:async ()=>{ const b=db.batch(); const s=await db.collection("shifts").get(), w=await db.collection("workers").get(); s.forEach(d=>b.delete(d.ref)); w.forEach(d=>b.delete(d.ref)); await b.commit(); }}]); }
+
+            async function openDetails(docId, name, code) {
+                document.getElementById('detail-header').innerHTML = `<h2 class="text-3xl font-black uppercase tracking-tighter">${name}</h2><p class="text-pink-600 font-bold text-xs mt-1">ID: ${code}</p>`;
+                document.getElementById('detail-panel').classList.add('open');
+                db.collection("shifts").where("workerId", "==", code).onSnapshot(snap => {
+                    let w1=0, w2=0, shifts=[]; snap.forEach(doc => { const s = doc.data(), d = parseInt(s.date.split('-')[2]), [st, en] = s.time.split('-'); let sH = parseInt(st.split(':')[0]), eH = parseInt(en.split(':')[0]), dur = (eH-sH < 0) ? (eH+24-sH) : (eH-sH); let amt = dur >= 8 ? 380 : dur * 60; if(d <= 15) w1 += amt; else w2 += amt; shifts.push({...s, id: doc.id}); });
+                    document.getElementById('detail-stats').innerHTML = `<div class="premium-card p-4"><p class="text-[8px] font-black uppercase text-slate-500">Week 1</p><p class="text-xl font-black">${w1} ฿</p></div><div class="premium-card p-4"><p class="text-[8px] font-black uppercase text-slate-500">Week 2</p><p class="text-xl font-black">${w2} ฿</p></div>`;
+                    document.getElementById('detail-history').innerHTML = shifts.map(sh => `<div class="bg-white/5 p-4 rounded-xl flex justify-between"><div><p class="text-[11px] text-white">${sh.date}</p><p class="text-[9px] text-slate-500 font-bold">${sh.time}</p></div><button onclick="db.collection('shifts').doc('${sh.id}').delete()">×</button></div>`).join('');
+                });
+            }
+            function closeDetails() { document.getElementById('detail-panel').classList.remove('open'); }
+            async function loadDailySummary() { const d = document.getElementById('summary-date').value, c = document.getElementById('summary-content'); if(!d) return; const snap = await db.collection("shifts").where("date", "==", d).get(); if(snap.empty) { c.innerHTML = "No Records"; return; } const grp = {}; snap.forEach(doc => { const s = doc.data(); if(!grp[s.time]) grp[s.time] = []; grp[s.time].push({ id: doc.id, workerId: s.workerId }); }); let h = `<div class="p-4 bg-pink-600/10 rounded-2xl flex justify-between text-[10px] mb-4"><span>${d}</span><span>Total: ${snap.size}</span></div>`; Object.keys(grp).sort().forEach(t => { h += `<p class="text-[11px] font-black uppercase mb-3">${t} (${grp[t].length})</p>`; grp[t].forEach(r => { const w = workersList.find(x => x.workerCode === r.workerId) || { name: 'Unknown' }; h += `<label class="flex justify-between p-3 mb-1 bg-white/5 rounded-xl"><div class="flex items-center gap-3"><input type="checkbox" class="multi-del-cb w-4 h-4 accent-red-600" value="${r.id}" onchange="toggleMultiDelBtn()"><span class="text-[11px] font-bold">${r.workerId} - ${w.name}</span></div></label>`; }); }); c.innerHTML = h; }
+            function toggleMultiDelBtn() { const s = document.querySelectorAll('.multi-del-cb:checked').length; document.getElementById('multi-del-btn').classList.toggle('hidden', s === 0); document.getElementById('multi-del-btn').innerText = `Delete (${s})`; }
+            async function executeMultiDelete() { const ids = Array.from(document.querySelectorAll('.multi-del-cb:checked')).map(cb => cb.value); const b = db.batch(); ids.forEach(id=>b.delete(db.collection("shifts").doc(id))); await b.commit(); loadDailySummary(); }
+            async function updateServerStatus() { await db.collection("settings").doc("staffControl").set({ isLocked: document.getElementById('maintStatus').checked, header: document.getElementById('maintHeader').value, message: document.getElementById('maintMessage').value }); }
+            function populateHours() { const s = document.getElementById('start-hour'), e = document.getElementById('end-hour'); for(let i=0; i<24; i++) { const h = i.toString().padStart(2, '0') + ":00"; s.innerHTML += `<option value="${h}">${h}</option>`; e.innerHTML += `<option value="${h}">${h}</option>`; } }
+            function logout() { localStorage.clear(); window.location.href = "index.html"; }
+            function openStaffModal() { showGlassDialog("New Staff", `<input type="text" id="n-n" placeholder="Name" class="w-full modern-input p-4 mb-4"><input type="number" id="n-i" placeholder="7-Digit Code" class="w-full modern-input p-4">`, [{text: "Cancel"}, {text: "Add", primary:true, fn:async ()=>{ const n=document.getElementById('n-n').value, i=document.getElementById('n-i').value; if(n && i.length===7) await db.collection("workers").add({name: n, workerCode: parseInt(i)}); }}]); }
+            init();
+        </script>
+        </body>
+        </html>
