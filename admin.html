@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.P.T Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-style: normal !important; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: #f1f5f9; overflow: hidden; height: 100vh; margin: 0; }
+        .content-frame { width: 100%; height: calc(100vh - 145px); border: none; background: transparent; }
+        .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 500px; height: 70px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 25px; display: flex; align-items: center; justify-content: space-around; z-index: 1000; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .nav-item { color: #64748b; font-size: 9px; font-weight: 800; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: 0.3s; }
+        .nav-item.active { color: #db2777; transform: translateY(-5px); } /* Pink Color Theme */
+        .nav-dot { width: 4px; height: 4px; background: #db2777; border-radius: 50%; opacity: 0; transition: 0.3s; }
+        .nav-item.active .nav-dot { opacity: 1; }
+    </style>
+</head>
+<body>
+    <nav class="px-6 py-5 bg-[#020617] border-b border-white/5 flex justify-between items-center">
+        <h1 class="font-black uppercase tracking-tighter text-lg text-white"><span class="text-pink-600 text-2xl">S.P.T</span> ADMIN</h1>
+        <button onclick="location.href='index.html'" class="text-[10px] font-black uppercase text-slate-500 hover:text-white transition-colors">Sign Out</button>
+    </nav>
+
+    <iframe id="main-frame" src="admin-staff.html" class="content-frame"></iframe>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="changePage('admin-staff.html', this)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Staff</span><div class="nav-dot"></div>
+        </div>
+        <div class="nav-item" onclick="changePage('admin-shifts.html', this)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            <span>Shift</span><div class="nav-dot"></div>
+        </div>
+        <div class="nav-item" onclick="changePage('admin-server.html', this)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+            <span>Server</span><div class="nav-dot"></div>
+        </div>
+    </div>
+
+    <script>
+        function changePage(url, el) {
+            document.getElementById('main-frame').src = url;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        }
+    </script>
+</body>
+</html>

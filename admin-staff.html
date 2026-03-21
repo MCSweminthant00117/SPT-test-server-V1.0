@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin | Staff Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-style: normal !important; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: #020617; color: white; padding-bottom: 40px; }
+        .glass-card { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.9); backdrop-filter: blur(15px); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .loader-spin { width: 40px; height: 40px; border: 3px solid rgba(219, 39, 119, 0.2); border-top: 3px solid #db2777; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input { background: rgba(255, 255, 255, 0.03) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white !important; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div id="page-loader" class="glass-overlay">
+        <div class="flex flex-col items-center">
+            <div class="loader-spin mb-4"></div>
+            <p class="text-[10px] font-black uppercase tracking-[0.4em] text-pink-600 animate-pulse">Processing...</p>
+        </div>
+    </div>
+
+    <div id="add-modal" class="glass-overlay">
+        <div class="glass-card p-8 w-[90%] max-w-sm rounded-[2.5rem] border-white/10 shadow-2xl">
+            <h3 class="text-xl font-black uppercase tracking-tighter text-pink-600 mb-6 text-center">New Personnel</h3>
+            <div class="space-y-4">
+                <input type="text" id="newName" placeholder="Full Name" class="w-full p-4 rounded-2xl text-sm font-bold">
+                <input type="number" id="newCode" placeholder="Worker Code (ID)" class="w-full p-4 rounded-2xl text-sm font-bold">
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeAddModal()" class="flex-1 py-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Cancel</button>
+                <button onclick="submitStaff()" class="flex-1 py-4 bg-pink-700 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-pink-900/20">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="sticky top-0 z-50 px-6 py-6 bg-[#020617]/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-black uppercase tracking-tighter text-pink-600">Staff Hub</h2>
+            <p class="text-[8px] font-bold text-slate-500 uppercase tracking-[0.3em]">Directory Control</p>
+        </div>
+        <button onclick="openAddModal()" class="w-12 h-12 bg-pink-700/20 text-pink-500 border border-pink-700/30 rounded-2xl flex items-center justify-center active:scale-90 transition-all shadow-lg shadow-pink-900/10">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+        </button>
+    </nav>
+
+    <main class="p-6 max-w-lg mx-auto space-y-4" id="staff-list">
+        <p class="text-center py-20 text-[10px] font-black text-slate-700 uppercase tracking-widest">Syncing Personnel...</p>
+    </main>
+
+    <script>
+        const adminData = JSON.parse(localStorage.getItem("spt_user"));
+        if(!adminData || adminData.role !== 'admin') { window.location.href = "index.html"; }
+
+        function openAddModal() { document.getElementById('add-modal').style.display = 'flex'; }
+        function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
+
+        // Staff List Sync
+        db.collection("workers").orderBy("workerCode", "asc").onSnapshot(snap => {
+            const list = document.getElementById('staff-list');
+            list.innerHTML = snap.empty ? `<p class="text-center py-20 text-slate-700 text-[10px] font-black uppercase tracking-widest">No Staff Found</p>` : "";
+            snap.forEach(doc => {
+                const w = doc.data();
+                list.innerHTML += `
+                    <div onclick="goToDetail('${w.workerCode}')" class="glass-card p-5 rounded-[2rem] flex items-center justify-between active:scale-[0.97] transition-all cursor-pointer group">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 bg-pink-700/10 text-pink-500 rounded-2xl flex items-center justify-center text-xl font-black border border-pink-700/20">${w.name[0]}</div>
+                            <div>
+                                <p class="text-sm font-black uppercase tracking-tight text-white">${w.name}</p>
+                                <p class="text-[9px] font-bold text-slate-500 tracking-widest mt-0.5">WORKER ID: ${w.workerCode}</p>
+                            </div>
+                        </div>
+                        <div class="w-10 h-10 flex items-center justify-center text-slate-800 group-hover:text-pink-500 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                    </div>`;
+            });
+        });
+
+        async function submitStaff() {
+            const name = document.getElementById('newName').value.trim();
+            const code = document.getElementById('newCode').value.trim();
+            if(!name || !code) return;
+
+            document.getElementById('page-loader').style.display = 'flex';
+            await db.collection("workers").add({ name, workerCode: code, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            
+            document.getElementById('newName').value = "";
+            document.getElementById('newCode').value = "";
+            closeAddModal();
+            document.getElementById('page-loader').style.display = 'none';
+        }
+
+        function goToDetail(code) {
+            document.getElementById('page-loader').style.display = 'flex';
+            setTimeout(() => { window.location.href = `admin-staff-detail.html?code=${code}`; }, 400);
+        }
+    </script>
+</body>
+</html>

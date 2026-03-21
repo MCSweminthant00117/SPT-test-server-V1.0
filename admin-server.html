@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-style: normal !important; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: #020617; color: white; padding-bottom: 120px; }
+        .premium-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; backdrop-filter: blur(10px); }
+        .modern-input { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 12px; outline: none; transition: 0.3s; }
+        .modern-input:focus { border-color: #be185d; }
+        .check-item { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 15px; }
+    </style>
+</head>
+<body class="p-5 max-w-2xl mx-auto">
+
+    <script>
+        const adminData = JSON.parse(localStorage.getItem("spt_user"));
+        if(!adminData || adminData.role !== 'admin') { window.top.location.href = "index.html"; }
+    </script>
+
+    <header class="mb-8">
+        <h2 class="text-2xl font-black uppercase tracking-tighter text-pink-600">Core Server</h2>
+        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em]">Advanced Control Panel</p>
+    </header>
+
+    <div class="premium-card p-6 mb-6 space-y-4">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+            <h3 class="font-black uppercase text-xs tracking-widest text-blue-500">Notification Center</h3>
+        </div>
+        <input type="text" id="notiTitle" class="w-full p-4 modern-input font-bold text-sm" placeholder="Notification Title">
+        <textarea id="notiMsg" class="w-full p-4 modern-input font-bold text-sm h-20" placeholder="Message Content"></textarea>
+        <div class="grid grid-cols-2 gap-3">
+            <select id="notiType" class="modern-input p-4 text-[10px] font-black uppercase">
+                <option value="once">Show One-Time</option>
+                <option value="always">Show Always</option>
+            </select>
+            <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                <span class="text-[9px] font-black uppercase text-slate-400">Active</span>
+                <input type="checkbox" id="notiActive" class="w-5 h-5 accent-blue-600">
+            </div>
+        </div>
+        <button onclick="updateNoti()" class="w-full py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Update Broadcast</button>
+    </div>
+
+    <div class="premium-card p-6 mb-6 space-y-4 border-yellow-900/20">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-1.5 h-5 bg-yellow-500 rounded-full"></div>
+            <h3 class="font-black uppercase text-xs tracking-widest text-yellow-500">System Lock</h3>
+        </div>
+        <input type="text" id="mHeader" class="w-full p-4 modern-input font-bold text-sm" placeholder="Maintenance Title">
+        <textarea id="mMsg" class="w-full p-4 modern-input font-bold text-sm h-20" placeholder="Locked Message"></textarea>
+        <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+            <span class="text-[9px] font-black uppercase text-slate-400">Lock System</span>
+            <input type="checkbox" id="mStatus" class="w-6 h-6 accent-yellow-600">
+        </div>
+        <button onclick="updateMaintenance()" class="w-full py-4 bg-yellow-600 rounded-2xl font-black text-xs uppercase active:scale-95 transition-all">Update Lock Status</button>
+    </div>
+
+    <div class="premium-card p-6 mb-6 border-red-900/20">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-2"><div class="w-1.5 h-5 bg-red-600 rounded-full"></div><h3 class="font-black uppercase text-xs tracking-widest text-red-500">Data Cleanup</h3></div>
+            <button onclick="toggleSelectAll()" class="text-[9px] font-black uppercase text-slate-400 border border-white/10 px-3 py-1 rounded-lg">Select All</button>
+        </div>
+        <div id="date-list" class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto mb-4 pr-1"></div>
+        <button onclick="deleteSelectedDates()" class="w-full py-4 bg-red-900/40 border border-red-500/50 text-red-500 rounded-2xl font-black text-xs uppercase active:scale-95 transition-all">Clear Selected Data</button>
+    </div>
+
+    <div class="premium-card p-6 border-green-900/20">
+        <div class="flex items-center gap-2 mb-6">
+            <div class="w-1.5 h-5 bg-green-500 rounded-full"></div>
+            <h3 class="font-black uppercase text-xs tracking-widest text-green-500">Recent Login Activity</h3>
+        </div>
+        <div id="log-list" class="space-y-3 max-h-60 overflow-y-auto pr-1 text-[10px]">
+            </div>
+    </div>
+
+    <script>
+        // --- NOTIFICATION ---
+        async function updateNoti() {
+            await db.collection("settings").doc("notifications").set({
+                id: Date.now().toString(),
+                title: document.getElementById('notiTitle').value || "Broadcast",
+                message: document.getElementById('notiMsg').value,
+                type: document.getElementById('notiType').value,
+                active: document.getElementById('notiActive').checked
+            });
+            alert("Notification Updated!");
+        }
+
+        // --- MAINTENANCE ---
+        async function updateMaintenance() {
+            await db.collection("settings").doc("staffControl").set({
+                isLocked: document.getElementById('mStatus').checked,
+                header: document.getElementById('mHeader').value || "Maintenance",
+                message: document.getElementById('mMsg').value || "Coming back soon."
+            });
+            alert("System Status Updated!");
+        }
+
+        // --- CLEANUP LOGIC ---
+        async function scanDates() {
+            const dateListDiv = document.getElementById('date-list');
+            const snap = await db.collection("shifts").get();
+            const datesSet = new Set();
+            snap.forEach(doc => datesSet.add(doc.data().date));
+            const allDates = Array.from(datesSet).sort().reverse();
+            
+            dateListDiv.innerHTML = allDates.length ? "" : `<p class="text-center text-slate-600 text-[10px] font-black uppercase py-5">No Data</p>`;
+            allDates.forEach(date => {
+                dateListDiv.innerHTML += `
+                <label class="check-item flex items-center justify-between p-4 cursor-pointer">
+                    <span class="text-xs font-black uppercase text-white">${date}</span>
+                    <input type="checkbox" name="deleteDate" value="${date}" class="w-5 h-5 accent-pink-600">
+                </label>`;
+            });
+        }
+
+        let isAllSelected = false;
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('input[name="deleteDate"]');
+            isAllSelected = !isAllSelected;
+            checkboxes.forEach(cb => cb.checked = isAllSelected);
+        }
+
+        async function deleteSelectedDates() {
+            const selected = Array.from(document.querySelectorAll('input[name="deleteDate"]:checked')).map(cb => cb.value);
+            if(!selected.length || !confirm(`Delete ${selected.length} dates?`)) return;
+            for (const date of selected) {
+                const snap = await db.collection("shifts").where("date", "==", date).get();
+                const batch = db.batch();
+                snap.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+            }
+            alert("Deleted!"); scanDates();
+        }
+
+        // --- LOGIN LOGS ---
+        db.collection("login_logs").orderBy("accessTime", "desc").limit(20).onSnapshot(snap => {
+            const list = document.getElementById('log-list');
+            list.innerHTML = "";
+            snap.forEach(doc => {
+                const log = doc.data();
+                list.innerHTML += `
+                <div class="p-3 bg-white/5 rounded-xl flex justify-between items-center border border-white/5">
+                    <div><p class="font-black text-white uppercase">${log.workerName}</p><p class="text-slate-500 font-bold">${log.device}</p></div>
+                    <p class="text-slate-400 font-black text-right">${log.dateLabel.split(',')[1] || ''}<br>${log.dateLabel.split(',')[0]}</p>
+                </div>`;
+            });
+        });
+
+        // Initialize Settings
+        db.collection("settings").doc("notifications").get().then(doc => {
+            if(doc.exists) {
+                const d = doc.data();
+                document.getElementById('notiTitle').value = d.title || "";
+                document.getElementById('notiMsg').value = d.message || "";
+                document.getElementById('notiType').value = d.type || "once";
+                document.getElementById('notiActive').checked = d.active || false;
+            }
+        });
+
+        db.collection("settings").doc("staffControl").get().then(doc => {
+            if(doc.exists) {
+                const d = doc.data();
+                document.getElementById('mHeader').value = d.header || "";
+                document.getElementById('mMsg').value = d.message || "";
+                document.getElementById('mStatus').checked = d.isLocked || false;
+            }
+        });
+
+        window.onload = scanDates;
+    </script>
+</body>
+</html>
